@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ConsoleScroller</name>
+    </assembly>
+    <members>
+        <member name="T:ConsoleScroller.Scroller">
+            <summary>
+            Console scroller.
+            </summary>
+        </member>
+        <member name="M:ConsoleScroller.Scroller.#ctor(System.Int32)">
+            <summary>
+            Create the console scroller.
+            </summary>
+            <param name="maxLines">Maximum number of lines to consume on the console.</param>
+        </member>
+        <member name="M:ConsoleScroller.Scroller.Dispose">
+            <summary>
+            Dispose.
+            </summary>
+        </member>
+        <member name="M:ConsoleScroller.Scroller.WriteLine(System.String,System.Nullable{System.ConsoleColor},System.Nullable{System.ConsoleColor})">
+            <summary>
+            Add a line to the console scroller.
+            </summary>
+            <param name="text">Text.</param>
+            <param name="foreground">Foreground color.</param>
+            <param name="background">Background color.</param>
+        </member>
+    </members>
+</doc>
