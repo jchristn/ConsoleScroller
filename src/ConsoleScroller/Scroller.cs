@@ -42,13 +42,35 @@
             {
                 _DefaultForegroundColor = Console.ForegroundColor;
                 _DefaultBackgroundColor = Console.BackgroundColor;
+
+                // Always start from the current cursor position
                 _StartingTop = Console.CursorTop;
 
-                for (int i = 0; i < maxLines; i++)
+                // Make sure we have enough room in the buffer
+                int bufferHeight = Console.BufferHeight;
+                int availableLines = bufferHeight - _StartingTop;
+
+                // Add lines to the buffer if needed
+                if (availableLines < maxLines)
                 {
-                    Console.WriteLine();
+                    int linesToAdd = maxLines - availableLines;
+                    for (int i = 0; i < linesToAdd; i++)
+                    {
+                        Console.WriteLine();
+                    }
                 }
 
+                // Reserve the display area by clearing each line
+                for (int i = 0; i < maxLines; i++)
+                {
+                    if (_StartingTop + i < Console.BufferHeight)
+                    {
+                        Console.SetCursorPosition(0, _StartingTop + i);
+                        ClearCurrentLine();
+                    }
+                }
+
+                // Return to the starting position
                 Console.SetCursorPosition(0, _StartingTop);
             }
         }
@@ -69,7 +91,18 @@
                 _Disposed = true;
                 Console.ForegroundColor = _DefaultForegroundColor;
                 Console.BackgroundColor = _DefaultBackgroundColor;
-                Console.SetCursorPosition(0, _StartingTop + _MaxLines);
+
+                // Position cursor right after the last displayed line
+                // If we have fewer lines than max, position after the last actual line
+                int lastLinePos = _StartingTop + Math.Min(_Lines.Count, _MaxLines);
+
+                // Ensure we don't go beyond buffer height
+                lastLinePos = Math.Min(lastLinePos, Console.BufferHeight - 1);
+
+                Console.SetCursorPosition(0, lastLinePos);
+
+                // Ensure there's a new line after our scroller content
+                Console.WriteLine();
             }
         }
 
@@ -85,15 +118,14 @@
 
             lock (_Lock)
             {
-                if (_Lines.Count >= _MaxLines)
-                {
-                    _Lines.Dequeue();
-                }
-
+                // We will always append the new line, regardless of buffer size
                 _Lines.Enqueue(new ColorLine(
                     text,
                     foreground ?? Console.ForegroundColor,
                     background ?? Console.BackgroundColor));
+
+                // When we exceed MaxLines, we'll show only the most recent ones
+                // The display logic handles this in RefreshDisplay()
 
                 RefreshDisplay();
             }
@@ -112,25 +144,41 @@
 
             try
             {
-                // Clear the display area line by line
+                // Store current console colors
                 Console.ForegroundColor = _DefaultForegroundColor;
                 Console.BackgroundColor = _DefaultBackgroundColor;
 
+                // Clear all lines in our display area first
                 for (int i = 0; i < _MaxLines; i++)
                 {
-                    Console.SetCursorPosition(0, _StartingTop + i);
+                    int linePosition = _StartingTop + i;
+                    if (linePosition >= Console.BufferHeight)
+                        break;
+
+                    Console.SetCursorPosition(0, linePosition);
                     ClearCurrentLine();
                 }
 
-                // Write the lines
-                int currentLine = 0;
-                foreach (var line in _Lines)
+                // Convert queue to array for indexed access
+                ColorLine[] allLines = _Lines.ToArray();
+
+                // Calculate which lines to display (most recent _MaxLines)
+                int linesToShow = Math.Min(_MaxLines, allLines.Length);
+                int startIndex = allLines.Length - linesToShow;
+
+                // Display the lines in the correct positions
+                for (int i = 0; i < linesToShow; i++)
                 {
-                    Console.SetCursorPosition(0, _StartingTop + currentLine);
-                    Console.ForegroundColor = line.Foreground;
-                    Console.BackgroundColor = line.Background;
-                    Console.Write(line.Text);
-                    currentLine++;
+                    int lineIndex = startIndex + i;
+                    int displayPosition = _StartingTop + i;
+
+                    if (displayPosition >= Console.BufferHeight)
+                        break;
+
+                    Console.SetCursorPosition(0, displayPosition);
+                    Console.ForegroundColor = allLines[lineIndex].Foreground;
+                    Console.BackgroundColor = allLines[lineIndex].Background;
+                    Console.Write(allLines[lineIndex].Text);
                 }
             }
             finally
@@ -139,7 +187,16 @@
                 {
                     Console.ForegroundColor = originalForeground;
                     Console.BackgroundColor = originalBackground;
-                    Console.SetCursorPosition(originalLeft, originalTop);
+
+                    // Ensure we don't set cursor beyond buffer height
+                    if (originalTop < Console.BufferHeight)
+                    {
+                        Console.SetCursorPosition(originalLeft, originalTop);
+                    }
+                    else
+                    {
+                        Console.SetCursorPosition(originalLeft, Console.BufferHeight - 1);
+                    }
                 }
             }
         }
