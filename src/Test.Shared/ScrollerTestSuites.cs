@@ -74,6 +74,12 @@ namespace Test.Shared
                 {
                     var ex = TestAssert.Throws<ArgumentOutOfRangeException>(() => new Scroller(-5), "for -5");
                     TestAssert.Equal("maxLines", ex.ParamName, "ParamName should identify the offending argument");
+                }),
+
+                Case(s, "min_value_paramname", "ArgumentOutOfRangeException reports ParamName 'maxLines' for int.MinValue", () =>
+                {
+                    var ex = TestAssert.Throws<ArgumentOutOfRangeException>(() => new Scroller(int.MinValue), "for int.MinValue");
+                    TestAssert.Equal("maxLines", ex.ParamName, "ParamName should identify the offending argument");
                 })
             });
         }
@@ -142,6 +148,35 @@ namespace Test.Shared
                     TestAssert.NotNull(m, "Dispose() should exist");
                     TestAssert.True(m!.IsPublic, "Dispose should be public");
                     TestAssert.Equal(typeof(void), m.ReturnType, "Dispose should return void");
+                }),
+
+                Case(s, "single_public_constructor", "Scroller exposes exactly one public constructor", () =>
+                {
+                    ConstructorInfo[] ctors = t.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+                    TestAssert.Equal(1, ctors.Length, "adding or removing a public constructor is a surface change");
+                }),
+
+                Case(s, "no_public_properties", "Scroller exposes no public instance properties", () =>
+                {
+                    PropertyInfo[] props = t.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                    TestAssert.Equal(0, props.Length, "Scroller intentionally exposes no public properties; a new one is a surface change");
+                }),
+
+                Case(s, "declared_public_methods_are_expected", "the only declared public methods are WriteLine and Dispose", () =>
+                {
+                    // Declared-only excludes inherited Object members. Property/event accessors would also
+                    // appear here (IsSpecialName), but Scroller has none; this guards against silent surface growth.
+                    string[] names = t
+                        .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+                        .Where(m => !m.IsSpecialName)
+                        .Select(m => m.Name)
+                        .Distinct()
+                        .OrderBy(n => n, StringComparer.Ordinal)
+                        .ToArray();
+
+                    TestAssert.Equal(2, names.Length, "exactly two public methods expected (WriteLine, Dispose)");
+                    TestAssert.Equal("Dispose", names[0], "first public method (ordinal) should be Dispose");
+                    TestAssert.Equal("WriteLine", names[1], "second public method (ordinal) should be WriteLine");
                 })
             });
         }

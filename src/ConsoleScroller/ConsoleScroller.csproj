@@ -13,6 +13,8 @@
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<DocumentationFile>ConsoleScroller.xml</DocumentationFile>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<IncludeSymbols>True</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 		<Title>ConsoleScroller</Title>
 		<Authors>Joel Christner</Authors>
 		<Copyright>(c)2024 Joel Christner</Copyright>
